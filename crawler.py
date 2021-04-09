@@ -12,17 +12,29 @@ conn = mariadb.connect(
 cur = conn.cursor()
 
 driver = webdriver.Chrome()
-base_url = 'https://www.animal.go.kr/front/awtis/loss/lossList.do?totalCount=118&pageSize=10&menuNo=1000000057&&page='
+base_url = 'https://www.animal.go.kr/front/awtis/loss/lossList.do?totalCount=2463&pageSize=10&menuNo=1000000057&searchSDate=2020-01-01&searchEDate=2021-04-07&&page='
 path = '/Users/hyunji/project/crawler/img/'
-page_end = 10
+page_end = 1000
 page_size = 10
 
 for page in range(1, page_end + 1):
     for n in range(1, page_size + 1):   # click
-        driver.get(base_url + str(page))
-        driver.find_element_by_css_selector('ul.list > li:nth-child(' + str(n) + ') > div.photo > a').click()
+        # end of list
+        try:
+            driver.get(base_url + str(page))
+            driver.find_element_by_css_selector('ul.list > li:nth-child(' + str(n) + ') > div.photo > a').click()
+        except:
+            driver.quit()
+            conn.commit()
+            conn.close()
+            sys.exit(1)
 
-        img_url = driver.find_element_by_css_selector('div > div.photo > a > img').get_attribute('src')
+        # no image -> skip
+        try:
+            img_url = driver.find_element_by_css_selector('div > div.photo > a > img').get_attribute('src')
+        except:
+            continue
+
         value = driver.find_element_by_css_selector('input#seqNo').get_attribute('value')
         location = driver.find_element_by_css_selector('div > table > tbody > tr:nth-child(8) > td').text
         date = driver.find_element_by_css_selector('div > table > tbody > tr:nth-child(6) > td').text
@@ -37,10 +49,11 @@ for page in range(1, page_end + 1):
 
         # check if file already exists
         if os.path.exists(path + file_name):
-            driver.quit()
-            conn.commit()
-            conn.close()
-            sys.exit(1)
+            continue
+            # driver.quit()
+            # conn.commit()
+            # conn.close()
+            # sys.exit(1)
 
         # insert data to DB
         try:
